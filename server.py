@@ -57,15 +57,12 @@ jokes = [
     "How many programmers does it take to change a light bulb? None, that's a hardware problem!",
     "What do you call a programmer from Finland? Nerdic!",
 ]
-joke_index = 0
+joke_iterator = cycle(jokes)
 
 @mcp.tool()
 def tell_joke() -> str:
     """Get a programming joke"""
-    global joke_index
-    joke = jokes[joke_index]
-    joke_index = (joke_index + 1) % len(jokes)
-    return joke
+    return next(joke_iterator)
 
 # Mount MCP server to FastAPI
 app.mount("/", mcp.sse_app())
