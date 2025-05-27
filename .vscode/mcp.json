@@ -3,9 +3,7 @@
         "my-mcp-server-auth-jokes": {
             "type": "sse",
             "url": "http://localhost:8000/sse",
-            "headers": {
-                "Authorization": "Bearer valid_token"
-            }
+            
         }
     }
 }
