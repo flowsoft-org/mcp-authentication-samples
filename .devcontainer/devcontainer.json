@@ -2,9 +2,8 @@
     "name": "Python MCP Server",
     "image": "mcr.microsoft.com/devcontainers/python:3.12",
     "features": {
-        "ghcr.io/devcontainers/features/python:1": {
-            "version": "3.12"
-        }
+        "ghcr.io/devcontainers/features/python:1": {},
+        "ghcr.io/devcontainers/features/azure-cli:1": {}
     },
     "customizations": {
         "vscode": {

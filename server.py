@@ -1,38 +1,44 @@
-from fastapi import FastAPI, HTTPException, Request
-from fastapi.security.utils import get_authorization_scheme_param
+from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
-from mcp.server.fastmcp import FastMCP
+# Serve a specific file at /.well-known/oauth-protected-resource
+from fastapi.responses import FileResponse
+from fastmcp import FastMCP
+from fastmcp.server.auth import BearerAuthProvider
 from itertools import cycle
-# from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
-# from typing import Optional
+import os
 
-app = FastAPI()
+# Define the authentication provider for token validation
+auth = BearerAuthProvider(
+    jwks_uri="https://login.microsoftonline.com/<ENTRATENANTID>/discovery/v2.0/keys",
+    issuer="https://sts.windows.net/<ENTRATENANTID>/",
+    audience="api://<APPUUID>",  # Replace with your actual app's URI
+    required_scopes=["mcp.tools"]  # Adjust the required scopes as needed
+)
 
-# Create MCP server
-mcp = FastMCP("Joke Server")
+# Mount MCP server to FastAPI
+mcp = FastMCP("Joke Server", auth=auth)
+# Create the ASGI app from your MCP server
+mcp_app = mcp.http_app(path='/')
+# Create a FastAPI app and mount the MCP server
+app = FastAPI(lifespan=mcp_app.lifespan)
+app.mount("/mcp", mcp_app)
 
-# Authentication middleware
+# Trigger oauth-protected-resource external identity provider authentication flow
 @app.middleware("http")
 async def auth_middleware(request: Request, call_next):
     try:
-        if request.url.path == "/sse":
+        if request.url.path == "/mcp":
             auth_header = request.headers.get("Authorization")
             if not auth_header:
                 return JSONResponse(
                     status_code=401,
                     content={"detail": "Not authenticated"},
-                    headers={"WWW-Authenticate": "Bearer"},
+                    headers={"WWW-Authenticate": "Bearer error=\"invalid_request\", error_description=\"No access token was provided in this request\", resource_metadata=\"http://localhost:8000/.well-known/oauth-protected-resource\""},
                 )
-            
-            scheme, credentials = get_authorization_scheme_param(auth_header)
-            if scheme.lower() != "bearer" or credentials != "valid_token":
-                return JSONResponse(
-                    status_code=401,
-                    content={"detail": "Invalid authentication credentials"},
-                    headers={"WWW-Authenticate": "Bearer"},
-                )
-        
+
+            #print(f"Authorization header: {auth_header}")
+
         response = await call_next(request)
         return response
     except Exception as e:
@@ -40,6 +46,11 @@ async def auth_middleware(request: Request, call_next):
             status_code=500,
             content={"detail": str(e)}
         )
+    
+@app.get("/.well-known/oauth-protected-resource")
+async def well_known_oauth_protected_resource():
+    file_path = os.path.join(os.path.dirname(__file__), "oauth-protected-resource.json")
+    return FileResponse(file_path, media_type="application/json")
 
 # Define jokes tool
 jokes = [
@@ -56,9 +67,5 @@ def tell_joke() -> str:
     """Get a programming joke"""
     return next(joke_iterator)
 
-# Mount MCP server to FastAPI
-app.mount("/", mcp.sse_app())
-
 if __name__ == "__main__":
-    #mcp.run(transport="sse")
     uvicorn.run(app, host="0.0.0.0", port=8000)
