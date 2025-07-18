@@ -12,9 +12,8 @@ import os
 auth = BearerAuthProvider(
     jwks_uri="https://login.microsoftonline.com/<ENTRATENANTID>/discovery/v2.0/keys",
     issuer="https://sts.windows.net/<ENTRATENANTID>/",
-    algorithm="RS256",
-    audience="api://<APPUUID>", # Replace with your actual app's URI
-    required_scopes=["mcp.tools"] # Adjust the required scopes as needed, need to be setup under Application -> Manage -> Expose an API
+    audience="api://<APPUUID>",  # Replace with your actual app's URI
+    required_scopes=["mcp.tools"]  # Adjust the required scopes as needed
 )
 
 # Mount MCP server to FastAPI
