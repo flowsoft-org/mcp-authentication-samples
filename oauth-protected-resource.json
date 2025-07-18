@@ -1,0 +1,10 @@
+{
+  "resource": "http://localhost:8000/",
+  "authorization_servers": [
+    "https://login.microsoftonline.com/<ENTRATENANTID>/v2.0"
+  ],
+  "bearer_methods_supported": ["header"],
+  "scopes_supported": [
+    "<SCOPE_AS_DEFINED_IN_ENTRA_APPLICATION_MANAGE_EXPOSE_API>"
+  ]
+}

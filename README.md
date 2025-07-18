@@ -1,61 +1,92 @@
-# MCP Joke Server with Authentication
+# MCP Authentication Samples 🚀
 
-This is a sample implementation of a Model Context Protocol (MCP) server that serves programming jokes with token-based authentication using FastAPI.
+This repository contains sample code for building Model Context Protocol (MCP) servers with authentication using FastAPI and FastMCP.
 
-## Setup
+## Running the Server 🖥️
 
 1. Open this folder in VS Code
-2. When prompted, click "Reopen in Container" to use the devcontainer configuration
-3. The container will automatically install all dependencies from requirements.txt
-
-## Running the Server
-
-```bash
-python server.py
-```
+2. (If using devcontainer) Click "Reopen in Container" if prompted
+3. Install dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
+4. Start the server:
+   ```bash
+   python server.py
+   ```
 
 The server will start on http://localhost:8000
 
-## Server Functionality
+## Authentication with Microsoft Entra ID (Azure AD) 🔐
 
-This MCP server provides a simple joke-telling capability. It cycles through a collection of programming-related jokes each time it's called. The server:
+This sample demonstrates how to protect your MCP server using OAuth2 Bearer tokens from Microsoft Entra ID (Azure AD).
 
-1. Implements a single MCP tool called `tell_joke`
-2. Returns a different programming joke on each invocation
-3. Requires authentication for accessing the SSE endpoint
+### Required Entra ID Application Setup 🛠️
 
-## Authentication
+1. **Register an Application** in Microsoft Entra ID (Azure AD) via the Azure Portal.
+2. **Expose an API**:
+   - Go to "Expose an API" in your app registration.
+   - Set the Application ID URI (e.g., `api://<APPUUID>`).
+   - Add a scope (e.g., `mcp.tools`).
+3. **Configure Authentication**:
+   - Add a redirect URI if needed for your client.
+4. **Get the following values** for your app:
+   - Tenant ID
+   - Application (client) ID
+   - Application ID URI
+   - Scope name
 
-The server implements a simple token-based authentication for the SSE endpoint (/sse). To make requests, you need to include a Bearer token in your HTTP headers.
+### Update Your Code and Resource Metadata ✏️
 
-For this demo, use the token: `valid_token`
+- **Update `BearerAuthProvider` in `server.py`:**
+  - Replace `<ENTRATENANTID>` with your Entra tenant ID.
+  - Replace `<APPUUID>` with your Application (client) ID or Application ID URI.
+  - Set the correct `jwks_uri`, `issuer`, `audience`, and `required_scopes`.
 
-Example curl request:
-```bash
-curl http://localhost:8000/sse \
-  -H "Authorization: Bearer valid_token"
+  Example:
+  ```python
+  auth = BearerAuthProvider(
+      jwks_uri="https://login.microsoftonline.com/<ENTRATENANTID>/discovery/v2.0/keys",
+      issuer="https://sts.windows.net/<ENTRATENANTID>/",
+      algorithm="RS256",
+      audience="api://<APPUUID>",
+      required_scopes=["mcp.tools"]
+  )
+  ```
+
+- **Update `oauth-protected-resource.json`:**
+  - Ensure this file matches your application's metadata, including resource ID, scopes, and issuer.
+
+### Example: oauth-protected-resource.json 📄
+
+```json
+{
+  "resource": "api://<APPUUID>",
+  "issuer": "https://sts.windows.net/<ENTRATENANTID>/",
+  "scopes": ["mcp.tools"]
+}
 ```
 
-Any requests to the SSE endpoint without a valid token will receive a 401 Unauthorized response.
+Replace placeholders with your actual values.
 
-## VS Code Copilot Integration
+## GitHub Copilot Agent Mode 🤖
 
-This server can be used as a custom joke-telling agent for GitHub Copilot in VS Code. To use it:
+This MCP server can also be used in GitHub Copilot Agent mode in VS Code. To enable this:
 
-1. Start the MCP server using `python server.py`
-2. The VS Code settings are already configured in `.vscode/settings.json` to use this server
-3. The server will respond to requests for jokes through the MCP protocol
+1. Ensure the server is running.
+2. Use the `mcp.json` file to configure the MCP server for GitHub Copilot.
+3. Start the server from the `mcp.json` configuration.
 
-### Supported Capabilities
-- Joke telling via MCP tool
-- Token-based authentication for SSE endpoint
-- FastAPI-based HTTP server
+## Testing 🧪
 
-## Security Note
+You can test the protected endpoint using curl:
 
-This is a demonstration implementation. In a production environment, you should:
-1. Use proper token validation
-2. Store secrets securely
-3. Implement proper token issuance and management
-4. Use HTTPS
-5. Add rate limiting and other security measures
+```
+curl -H "Authorization: Bearer <token>" http://localhost:8000/mcp
+```
+
+If no or an invalid token is provided, you will receive a 401 Unauthorized response.
+
+## License 📜
+
+See [LICENSE](LICENSE).
