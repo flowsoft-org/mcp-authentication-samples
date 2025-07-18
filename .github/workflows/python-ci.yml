@@ -34,8 +34,21 @@ jobs:
         # exit-zero treats all errors as warnings
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
                
-    - name: Verify server starts
+    - name: Run tests
       run: |
-        python server.py &
+        pytest
+
+    - name: Verify server starts (with mock Entra ID values)
+      run: |
+        # Create a mock oauth-protected-resource.json for testing
+        echo '{"resource":"api://mock","issuer":"https://mock","scopes":["mcp.tools"]}' > oauth-protected-resource.json
+        # Run server in test mode (this should be implemented in server.py)
+        TESTING=true python server.py &
+        # Check if server started successfully
         sleep 5
+        if ! curl -s http://localhost:8000/.well-known/oauth-protected-resource > /dev/null; then
+          echo "Server failed to start or respond"
+          exit 1
+        fi
+        # Cleanup
         kill $(lsof -t -i:8000) || true
